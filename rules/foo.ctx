@@ -1,0 +1,16 @@
+startshape SEED1
+ 
+rule SEED1 {
+  SQUARE { saturation 0.6 hue 120 }
+  SEED1 { y 1.2 size 0.99 rotate 1.5 }
+}
+
+rule SEED1 0.05 {
+  SEED1 { flip 90 }
+}
+ 
+rule SEED1 0.05 {
+  SEED1 { rotate -5 brightness 0.01 }
+  SEED1 { y 1 x -0.5 size 0.7 rotate  30 flip 90 brightness 0.1 }
+  SEED1 { y 1 x  0.5 size 0.7 rotate -30 flip 90 brightness 0.05 }
+}

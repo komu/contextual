@@ -1,0 +1,41 @@
+startshape easterb0xen
+ 
+// background { b -1 }
+ 
+rule easterb0xen
+{
+    // this makes a 2x2 grid of squares
+    BOX { x -0.5 y -0.5 }
+    BOX { x  0.5 y -0.5 }
+    BOX { x  0.5 y  0.5 }
+    BOX { x -0.5 y  0.5 }
+}
+ 
+rule BOX 10
+{
+    CSQUARE { size 0.8 }
+}
+ 
+rule BOX 20
+{
+    easterb0xen { size 0.5 }
+}
+ 
+rule BOX 5
+{
+    easterb0xen { size 0.25 }
+}
+ 
+rule BOX 1
+{
+    // do nossink.
+}
+
+rule CSQUARE {
+  SQUARE { b 1 saturation 1 }
+  SQUARE { size 0.75 b 0}
+}
+ 
+rule CSQUARE 12 {
+  CSQUARE { hue 170 }
+}
