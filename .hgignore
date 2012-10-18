@@ -1,5 +1,8 @@
 syntax: glob
+
 *~
 .DS_Store
 target
-project/boot
+out
+.idea/uiDesigner.xml
+.idea/workspace.xml
