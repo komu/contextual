@@ -61,7 +61,7 @@ class PrimitiveGenerator(val workQueue: BlockingQueue<WorkItem>,
             is TransformRule -> process(rule.rule, rule.transform(st), d)
             is RandomRule    -> process(rule.rule(random), st, d)
             is CompoundRule  -> if (rule.size == 1) {
-                                    process(rule.rules.first(), st, d)
+                                    process(rule.rules[0], st, d)
                                 } else if (d < maxDepth) {
                                     for (r in rule.rules)
                                         workQueue.put(WorkItem(r, st, d + 1))

@@ -53,7 +53,7 @@ class RandomRule : Rule() {
     }
 }
 
-class CompoundRule(val rules: List<Rule>) : Rule() {
+class CompoundRule(vararg val rules: Rule) : Rule() {
     val size = rules.size
 }
 
