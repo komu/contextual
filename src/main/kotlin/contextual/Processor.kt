@@ -3,10 +3,10 @@ package contextual
 import java.awt.Shape
 import java.util.Random
 import java.util.concurrent.BlockingQueue
-import com.apple.jobjc.Function
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.RecursiveAction
 
 class Processor(val threads: Int = 3, val maxDepth: Int = 500) {
 
@@ -21,8 +21,9 @@ class Processor(val threads: Int = 3, val maxDepth: Int = 500) {
     fun takeResult(): Primitive =
         resultQueue.take()!!
 
-    fun addWorkItem(rule: Rule, state: DrawState, depth: Int) {
-        workerScheduler.execute(runnable { rule.process(this, state, depth) })
+    fun addWorkItems(rules: List<Rule>, state: DrawState, depth: Int) {
+        for (rule in rules)
+            workerScheduler.execute(runnable { rule.process(this, state, depth) })
     }
 
     fun randomInt(n: Int) =

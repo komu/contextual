@@ -68,8 +68,7 @@ class CompoundRule(val rules: List<TransformRule>) : Rule() {
         if (rules.size == 1)
             rules[0].process(ctx, state, depth)
         else if (depth < ctx.maxDepth)
-            for (r in rules)
-                ctx.addWorkItem(r, state, depth + 1)
+            ctx.addWorkItems(rules, state, depth + 1)
     }
 }
 

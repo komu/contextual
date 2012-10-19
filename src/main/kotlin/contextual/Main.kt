@@ -34,7 +34,7 @@ fun main(args: Array<String>) {
     initialTransform.scale(1.0, -1.0)
 
     val processor = Processor()
-    processor.addWorkItem(root, DrawState(HSBColor.BLACK, initialTransform), 0)
+    processor.addWorkItems(arrayList(root), DrawState(HSBColor.BLACK, initialTransform), 0)
 
     while (true)
         canvas.draw(processor.takeResult())
