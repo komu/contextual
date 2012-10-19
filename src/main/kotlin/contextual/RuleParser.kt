@@ -42,45 +42,56 @@ class RuleParser(private val input: String) {
         expectSymbol("rule")
         val name = readSymbol()
         val weight = if (nextCharIs('{')) 1.0 else parseNumber()
-        val applications = parseList { parseApplication() }
+        val applications = parseApplications()
 
         return RuleBranch(name, weight, applications)
     }
 
-    fun parseApplication(): RuleApplication {
-        val name = readSymbol()
-        val transformations = parseList { parseTransformation() }
-        return RuleApplication(name, buildTransform(transformations))
-    }
-
-    fun parseTransformation(): (TransformationBuilder) -> Unit {
-        val symbol = readSymbol()
-        return when (symbol) {
-            "saturation" -> saturation(parseNumber())
-            "sat"        -> saturation(parseNumber())
-            "hue"        -> hue(parseNumber().toInt())
-            "x"          -> translateX(parseNumber())
-            "y"          -> translateY(parseNumber())
-            "size"       -> scale(parseNumber())
-            "s"          -> scale(parseNumber())
-            "rotate"     -> rotate(parseNumber())
-            "r"          -> rotate(parseNumber())
-            "flip"       -> flip(parseNumber())
-            "brightness" -> brightness(parseNumber())
-            "b"          -> brightness(parseNumber())
-            else         -> throw fail("unexpected symbol $symbol")
-        }
-    }
-
-    fun parseList<T>(parser: () -> T): List<T> {
-        val result = listBuilder<T>()
+    fun parseApplications(): List<RuleApplication> {
+        val result = listBuilder<RuleApplication>()
 
         expectChar('{')
         while (!nextCharIs('}'))
-            result.add(parser())
+            result.add(parseApplication())
         expectChar('}')
 
         return result.build()
+    }
+
+    fun parseApplication(): RuleApplication {
+        val name = readSymbol()
+        val transformations = parseTransformations()
+        return RuleApplication(name, transformations)
+    }
+
+    fun parseTransformations(): (DrawState) -> DrawState {
+        val transformationBuilder = TransformationBuilder()
+
+        expectChar('{')
+        while (!nextCharIs('}'))
+            parseTransformation(transformationBuilder)
+        expectChar('}')
+
+        return transformationBuilder.build()
+    }
+
+    fun parseTransformation(b: TransformationBuilder) {
+        val symbol = readSymbol()
+        when (symbol) {
+            "saturation" -> b.saturation(parseNumber().toFloat())
+            "sat"        -> b.saturation(parseNumber().toFloat())
+            "hue"        -> b.hue(parseNumber().toInt())
+            "brightness" -> b.brightness(parseNumber().toFloat())
+            "b"          -> b.brightness(parseNumber().toFloat())
+            "x"          -> b.translate(parseNumber(), 0.0)
+            "y"          -> b.translate(0.0, parseNumber())
+            "size"       -> b.scale(parseNumber())
+            "s"          -> b.scale(parseNumber())
+            "rotate"     -> b.rotate(parseNumber())
+            "r"          -> b.rotate(parseNumber())
+            "flip"       -> b.flip(parseNumber())
+            else         -> throw fail("unexpected symbol '$symbol'")
+        }
     }
 
     fun parseNumber(): Double {
@@ -168,57 +179,46 @@ class RuleParser(private val input: String) {
 
     private fun fail(message: String): ParseException =
         ParseException(pos, message)
-
-    private fun String.contains(ch: Char) =
-        indexOf(ch) != -1
 }
 
 class ParseException(pos: Int, message: String) : RuntimeException("$pos: $message")
 
+class RuleMap {
+    private val ruleMap = hashMap<String,RandomRule>()
+
+    fun get(name: String) =
+        ruleMap[name] ?: throw IllegalArgumentException("no such rule '$name'")
+
+    fun set(name: String, rule: RandomRule) {
+        ruleMap[name] = rule
+    }
+}
+
 fun buildRules(ruleFile: RuleFile): Rule {
-    val ruleMap = hashMap<String,RandomRule>()
-
-    fun getRule(name: String) =
-        ruleMap[name] ?: throw Exception("no such rule '$name'")
-
-    fun buildRule(applications: List<RuleApplication>) =
-        CompoundRule(applications.map { r ->
-            TransformRule(getRule(r.name), r.transformation)
-        })
-
-    ruleMap["SQUARE"] = RandomRule.single(PrimitiveRule.SQUARE)
-    ruleMap["CIRCLE"] = RandomRule.single(PrimitiveRule.CIRCLE)
+    val rules = RuleMap()
+    rules["SQUARE"] = RandomRule.single(PrimitiveRule.SQUARE)
+    rules["CIRCLE"] = RandomRule.single(PrimitiveRule.CIRCLE)
 
     // First install empty placeholders for all the rules
     for (rule in ruleFile.rules)
-        ruleMap[rule.name] = RandomRule()
+        rules[rule.name] = RandomRule()
 
     // ...then link them to definitions
     for (r in ruleFile.rules)
-        getRule(r.name).addBranch(r.weight, buildRule(r.applications))
+        rules[r.name].addBranch(r.weight, r.buildRule(rules))
 
-    return TransformRule(getRule(ruleFile.start), buildTransform(arrayList<(TransformationBuilder) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) })))
-}
-
-private fun buildTransform(ops: List<(TransformationBuilder) -> Unit>): (DrawState) -> DrawState {
-    val tx = TransformationBuilder()
-    for (op in ops)
-        op(tx)
-    return tx.build()
+    val rootTransform = TransformationBuilder().scale(6.0).translate(0.0, -35.0).build()
+    return TransformRule(rules[ruleFile.start], rootTransform)
 }
 
 class RuleFile(val start: String, val rules: List<RuleBranch>)
 
-class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>)
+class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>) {
+    fun buildRule(rules: RuleMap) =
+        Rule.compound(applications.map { it.buildRule(rules) })
+}
 
-class RuleApplication(val name: String, val transformation: (DrawState) -> DrawState)
-
-fun saturation(s: Double)         = { (r: TransformationBuilder) -> r.saturation += s.toFloat() }
-fun brightness(b: Double)         = { (r: TransformationBuilder) -> r.brightness += b.toFloat() }
-fun hue(h: Int)                   = { (r: TransformationBuilder) -> r.hue += h }
-fun translateX(dx: Double)        = { (r: TransformationBuilder) -> r.translate(dx, 0.0) }
-fun translateY(dy: Double)        = { (r: TransformationBuilder) -> r.translate(0.0, dy) }
-fun rotate(a: Double)             = { (r: TransformationBuilder) -> r.rotate(a) }
-fun scale(s: Double)              = { (r: TransformationBuilder) -> r.scale(s) }
-fun scale(sx: Double, sy: Double) = { (r: TransformationBuilder) -> r.scale(sx, sy) }
-fun flip(a: Double)               = if (a == 90.0) scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees")
+class RuleApplication(val name: String, val transformation: (DrawState) -> DrawState) {
+    fun buildRule(rules: RuleMap) =
+        TransformRule(rules[name], transformation)
+}

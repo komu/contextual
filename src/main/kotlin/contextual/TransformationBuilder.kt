@@ -7,23 +7,48 @@ class TransformationBuilder {
     var color = HSBColor.BLACK
     val coordinateTransform =  AffineTransform()
 
-    var hue: Int
-        get() = color.hue
-        set(h) { color = color.withHue(h) }
+    fun hue(h: Int): TransformationBuilder {
+        color = color.withHue(h)
+        return this
+    }
 
-    var saturation: Float
-        get() = color.saturation
-        set(s) { color = color.withSaturation(s) }
+    fun saturation(s: Float): TransformationBuilder {
+        color = color.withSaturation(s)
+        return this
+    }
 
-    var brightness: Float
-        get() = color.brightness
-        set(s) { color = color.withBrightness(s) }
+    fun brightness(b: Float): TransformationBuilder {
+        color = color.withBrightness(b)
+        return this
+    }
 
-    fun translate(dx: Double, dy: Double) = coordinateTransform.translate(dx, dy)
-    fun scale(s: Double)                  = coordinateTransform.scale(s, s)
-    fun scale(sx: Double, sy: Double)     = coordinateTransform.scale(sx, sy)
-    fun rotate(angle: Double)             = coordinateTransform.rotate(angle / 180 * Math.PI)
-    fun shear(x: Double, y: Double)       = coordinateTransform.shear(x, y)
+    fun translate(dx: Double, dy: Double): TransformationBuilder {
+        coordinateTransform.translate(dx, dy)
+        return this
+    }
+
+    fun scale(s: Double) = scale(s, s)
+
+    fun scale(sx: Double, sy: Double): TransformationBuilder {
+        coordinateTransform.scale(sx, sy)
+        return this
+    }
+
+    fun rotate(angle: Double): TransformationBuilder {
+        coordinateTransform.rotate(angle / 180 * Math.PI)
+        return this
+    }
+
+    fun shear(x: Double, y: Double): TransformationBuilder {
+        coordinateTransform.shear(x, y)
+        return this
+    }
+
+    fun flip(a: Double) =
+        if (a == 90.0)
+            scale(-1.0, 1.0)
+        else
+            throw UnsupportedOperationException("flip is supported only for 90 degrees")
 
     fun build(): (DrawState) -> DrawState =
         if (color == HSBColor.BLACK && coordinateTransform.isIdentity())

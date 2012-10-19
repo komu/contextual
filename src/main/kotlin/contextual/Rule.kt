@@ -9,35 +9,46 @@ import java.util.Queue
 import java.util.concurrent.BlockingQueue
 
 public abstract class Rule {
-    abstract fun process(ctx: ProcessingContext, state: DrawState, depth: Int)
+    abstract fun process(ctx: Processor, state: DrawState, depth: Int)
+
+    class object {
+        fun compound(rules: List<TransformRule>): Rule =
+            if (rules.size == 1)
+                rules[0]
+            else
+                CompoundRule(rules)
+    }
 }
 
 class TransformRule(val rule: Rule, val transform: (DrawState) -> DrawState) : Rule() {
 
-    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
+    override fun process(ctx: Processor, state: DrawState, depth: Int) =
         rule.process(ctx, transform(state), depth)
 }
 
 class RandomRule : Rule() {
 
     val rules: MutableList<Pair<Int,Rule>> = arrayList<Pair<Int,Rule>>()
+    var weightSum = 0
 
-    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
+    override fun process(ctx: Processor, state: DrawState, depth: Int) =
         randomRule(ctx).process(ctx, state, depth)
 
     fun addBranch(weight: Double, rule: Rule) {
-        rules.add(Pair((weight*100).toInt(), rule))
+        val normalizedWeight = (weight*100).toInt()
+        rules.add(Pair(normalizedWeight, rule))
+        weightSum += normalizedWeight
     }
 
-    private fun randomRule(ctx: ProcessingContext): Rule {
-        val weightSum = rules.fold(0) { (x, r) -> x+r.first }
+    private fun randomRule(ctx: Processor): Rule {
+        if (rules.size == 1) return rules[0].second
 
         val n = ctx.randomInt(weightSum)
         var sum = 0
         for ((w,r) in rules) {
-          sum += w
-          if (sum > n)
-              return r
+            sum += w
+            if (sum > n)
+                return r
         }
         throw AssertionError("no rule found")
     }
@@ -51,9 +62,9 @@ class RandomRule : Rule() {
     }
 }
 
-class CompoundRule(val rules: List<Rule>) : Rule() {
+class CompoundRule(val rules: List<TransformRule>) : Rule() {
 
-    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) {
+    override fun process(ctx: Processor, state: DrawState, depth: Int) {
         if (rules.size == 1)
             rules[0].process(ctx, state, depth)
         else if (depth < ctx.maxDepth)
@@ -64,8 +75,8 @@ class CompoundRule(val rules: List<Rule>) : Rule() {
 
 class PrimitiveRule(val shape: Shape) : Rule() {
 
-    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
-        ctx.addShape(shape, state)
+    override fun process(ctx: Processor, state: DrawState, depth: Int) =
+        ctx.addResult(shape, state)
 
     class object {
         val SQUARE = PrimitiveRule(Rectangle2D.Double(-0.5, -0.5, 1.0, 1.0))

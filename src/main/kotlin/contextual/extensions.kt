@@ -7,3 +7,6 @@ fun AffineTransform.times(t: AffineTransform): AffineTransform {
     result.concatenate(t)
     return result
 }
+
+fun String.contains(ch: Char) =
+    indexOf(ch) != -1
