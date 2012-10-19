@@ -2,12 +2,11 @@ package contextual
 
 import java.awt.Color
 import java.awt.Graphics
-import java.awt.image.BufferedImage
-import javax.swing.JComponent
 import java.awt.RenderingHints.*
+import java.awt.image.BufferedImage
 import java.util.concurrent.locks.ReentrantLock
+import javax.swing.JComponent
 import kotlin.concurrent.withLock
-import java.awt.Graphics2D
 
 class PrimitiveDrawingCanvas(width: Int, height: Int): JComponent() {
 

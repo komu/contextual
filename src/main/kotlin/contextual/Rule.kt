@@ -1,12 +1,8 @@
 package contextual
 
-import java.util.ArrayList
-import java.util.Random
 import java.awt.Shape
-import java.awt.geom.Rectangle2D
 import java.awt.geom.Ellipse2D
-import java.util.Queue
-import java.util.concurrent.BlockingQueue
+import java.awt.geom.Rectangle2D
 
 public abstract class Rule {
     abstract fun process(ctx: Processor, state: DrawState, depth: Int)

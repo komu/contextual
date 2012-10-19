@@ -2,11 +2,8 @@ package contextual
 
 import java.awt.Shape
 import java.util.Random
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.Executors
 import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.RecursiveAction
+import java.util.concurrent.Executors
 
 class Processor(val threads: Int = 3, val maxDepth: Int = 500) {
 

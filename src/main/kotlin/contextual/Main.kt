@@ -1,18 +1,9 @@
 package contextual
 
-import java.awt.RenderingHints.*
-import java.awt.image.BufferedImage
+import java.awt.Dimension
+import java.awt.geom.AffineTransform
 import javax.swing.JFrame
 import javax.swing.UIManager
-import java.util.Random
-import java.util.concurrent.LinkedBlockingQueue
-import javax.swing.Painter
-import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.BlockingQueue
-import kotlin.concurrent.thread
-import java.awt.geom.AffineTransform
-import java.awt.Shape
-import java.awt.Dimension
 
 fun main(args: Array<String>) {
 

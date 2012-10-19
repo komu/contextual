@@ -2,7 +2,6 @@ package contextual
 
 import java.io.File
 import java.lang.Character.isLetter
-import java.awt.geom.AffineTransform
 
 class RuleParser(private val input: String) {
 
