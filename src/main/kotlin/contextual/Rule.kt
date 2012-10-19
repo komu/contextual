@@ -8,21 +8,7 @@ import java.awt.geom.Ellipse2D
 
 public abstract class Rule { }
 
-class TransformRule(val rule: Rule) : Rule() {
-    val ops: MutableList<(DrawState) -> Unit> = arrayList<(DrawState) -> Unit>()
-
-    fun translate(x: Double, y: Double) = reg { it.translate(x, y) }
-    fun scale(r: Double)                = reg { it.scale(r) }
-    fun scale(x: Double, y: Double)     = reg { it.scale(x, y) }
-    fun rotate(degrees: Double)         = reg { it.rotate(degrees) }
-    fun shear(x: Double, y: Double)     = reg { it.shear(x, y) }
-    fun saturation(s: Float)            = reg { it.saturation += s }
-    fun brightness(b: Float)            = reg { it.brightness += b }
-    fun hue(h: Int)                     = reg { it.hue += h }
-
-    private fun reg(op: (DrawState) -> Unit) {
-        ops.add(op)
-    }
+class TransformRule(val rule: Rule, val ops: List<(DrawState) -> Unit>) : Rule() {
 
     fun transform(tr: DrawState): DrawState {
         val t = tr.copy()
@@ -37,15 +23,15 @@ class RandomRule : Rule() {
     class object {
         fun single(rule: Rule): RandomRule {
             val result = RandomRule()
-            result.add(1, rule)
+            result.addBranch(1.0, rule)
             return result
         }
     }
 
     val rules: MutableList<Pair<Int,Rule>> = arrayList<Pair<Int,Rule>>()
 
-    fun add(r: Int, rule: Rule) {
-        rules.add(Pair(r, rule))
+    fun addBranch(weight: Double, rule: Rule) {
+        rules.add(Pair((weight*100).toInt(), rule))
     }
 
     fun rule(random: Random): Rule {

@@ -1,79 +1,178 @@
 package contextual
 
-object RuleParser {
+import java.io.File
+import java.lang.Character.isLetter
 
-    fun parse(file: String): Rule {
-        val ruleFile = RuleFile("SEED1", arrayList(seed1(), seed2(), seed3()))
-        return buildRules(ruleFile)
+class RuleParser(private val input: String) {
+
+    private var pos = 0
+
+    class object {
+
+        fun parse(file: String): Rule =
+            parse(File(file))
+
+        fun parse(file: File): Rule =
+            buildRules(RuleParser(file.readText()).parseRuleFile())
     }
 
-    fun seed1(): RuleDef =
-        RuleDef("SEED1", 1.0, arrayList(Repl("SQUARE", arrayList(saturation(0.6), hue(120))),
-                                        Repl("SEED1", arrayList(translateY(1.2), scale(0.99), rotate(1.5)))))
+    fun parseRuleFile(): RuleFile {
+        val startShape = parseStartShape()
+        val rules = parseRuleDefinitions()
 
-    fun seed2(): RuleDef =
-        RuleDef("SEED1", 0.05, arrayList(Repl("SEED1", arrayList(flip(90)))))
-
-    fun seed3(): RuleDef {
-        val a = Repl("SEED1", arrayList(rotate(-5.0), brightness(0.01)))
-        val b = Repl("SEED1", arrayList(translateY(1.0), translateX(-0.5), scale(0.7), rotate(30.0), flip(90), brightness(0.1)))
-        val c = Repl("SEED1", arrayList(translateY(1.0), translateX(0.5), scale(0.7), rotate(-30.0), flip(90), brightness(0.05)))
-        return RuleDef("SEED1", 0.05, arrayList(a, b, c))
+        return RuleFile(startShape, rules)
     }
+
+    fun parseStartShape(): String {
+        expectSymbol("startshape")
+        return readSymbol()
+    }
+
+    fun parseRuleDefinitions(): List<RuleBranch> {
+        val rules = listBuilder<RuleBranch>()
+
+        while (hasMore())
+            rules.add(parseRuleDefinition())
+
+        return rules.build()
+    }
+
+    fun parseRuleDefinition(): RuleBranch {
+        expectSymbol("rule")
+        val name = readSymbol()
+        val weight = if (nextCharIs('{')) 1.0 else parseNumber()
+        val applications = parseList { parseApplication() }
+
+        return RuleBranch(name, weight, applications)
+    }
+
+    fun parseApplication(): RuleApplication {
+        val name = readSymbol()
+        val transformations = parseList { parseTransformation() }
+        return RuleApplication(name, transformations)
+    }
+
+    fun parseTransformation(): (DrawState) -> Unit {
+        val symbol = readSymbol()
+        return when (symbol) {
+            "saturation" -> saturation(parseNumber())
+            "sat"        -> saturation(parseNumber())
+            "hue"        -> hue(parseNumber().toInt())
+            "x"          -> translateX(parseNumber())
+            "y"          -> translateY(parseNumber())
+            "size"       -> scale(parseNumber())
+            "s"          -> scale(parseNumber())
+            "rotate"     -> rotate(parseNumber())
+            "r"          -> rotate(parseNumber())
+            "flip"       -> flip(parseNumber())
+            "brightness" -> brightness(parseNumber())
+            "b"          -> brightness(parseNumber())
+            else         -> throw fail("unexpected symbol $symbol")
+        }
+    }
+
+    fun parseList<T>(parser: () -> T): List<T> {
+        val result = listBuilder<T>()
+
+        expectChar('{')
+        while (!nextCharIs('}'))
+            result.add(parser())
+        expectChar('}')
+
+        return result.build()
+    }
+
+    fun parseNumber(): Double {
+        skipWhitespace()
+
+        if (!hasMore())
+            throw fail("expected number, but got EOF")
+
+        val token = readTokenFromAlphabet("-.0123456789")
+        try {
+            return token.toDouble()
+        } catch (e: NumberFormatException) {
+            throw fail("expected number, but got $token")
+        }
+    }
+
+    fun nextCharIs(ch: Char): Boolean {
+        skipWhitespace()
+        return hasMore() && input[pos] == ch
+    }
+
+    fun expectChar(expected: Char) {
+        skipWhitespace()
+
+        val ch = readChar()
+        if (ch != expected)
+            throw fail("expected char '$expected', but got '$ch'")
+    }
+
+    fun expectSymbol(expected: String) {
+        val symbol = readSymbol()
+        if (expected != symbol)
+            throw fail("expected symbol '$expected', but got: '$symbol'")
+    }
+
+    fun readSymbol(): String {
+        skipWhitespace()
+
+        val sb = StringBuilder()
+        while (pos < input.size && (isLetter(input[pos]) || (sb.length > 0 && input[pos].isDigit())) )
+            sb.append(input[pos++])
+
+        if (sb.length != 0)
+            return String(sb)
+        else
+            throw fail("expected symbol")
+    }
+
+    fun hasMore(): Boolean {
+        skipWhitespace()
+        return pos < input.size
+    }
+
+    private fun readTokenFromAlphabet(alphabet: String): String {
+        val sb = StringBuilder()
+
+        while (pos < input.size && input[pos] in alphabet)
+            sb.append(readChar())
+
+        return String(sb)
+    }
+
+    private fun readChar(): Char =
+        if (pos < input.size)
+            input[pos++]
+        else
+            throw fail("unexpected EOF")
+
+    private fun skipWhitespace() {
+        while (pos < input.size) {
+            val ch = input[pos]
+            if (ch == ';') {
+                skipEndOfLine()
+            } else if (!ch.isWhitespace())
+                break
+
+            pos++
+        }
+    }
+
+    private fun skipEndOfLine() {
+        while (pos < input.size && input[pos] != '\n')
+            pos++
+    }
+
+    private fun fail(message: String): ParseException =
+        ParseException(pos, message)
+
+    private fun String.contains(ch: Char) =
+        indexOf(ch) != -1
 }
 
-    /*
-  import AST._
-
-  lexical.delimiters ++= List("{", "}", ".", "-")
-  lexical.reserved ++= List("startshape", "rule", "saturation", "sat", "hue", "x", "y",
-                            "size", "rotate", "flip", "brightness",
-                            "r", "b", "s")
-
-  def rulefile: Parser[RuleFile] = startshape ~ rep1(rule) ^^
-    { case start ~ rules => RuleFile(start, rules) }
-
-  def startshape: Parser[String] = "startshape" ~> ident
-
-  def rule: Parser[RuleDef] =
-    "rule" ~> ident ~ opt(floatingLit) ~ ("{" ~> rep(replacement) <~ "}") ^^
-    { case name ~ weight ~ repls => RuleDef(name, weight.getOrElse(1), repls) }
-
-  def replacement: Parser[Repl] =
-    ruleref ~ ("{" ~> rep(shapeRepl) <~ "}") ^^
-    { case (s ~ rs) => Repl(s,rs) }
-
-  def shapeRepl: Parser[ShapeRepl] =
-    saturation | hue | x | y | size | rotate | flip | brightness
-
-  def hue: Parser[Hue]               = "hue"                  ~> integerLit  ^^ Hue
-  def saturation: Parser[Saturation] = ("sat" | "saturation") ~> floatingLit ^^ Saturation
-  def brightness: Parser[Brightness] = ("b" | "brightness")   ~> floatingLit ^^ Brightness
-  def x: Parser[TranslateX]          = "x"                    ~> floatingLit ^^ TranslateX
-  def y: Parser[TranslateY]          = "y"                    ~> floatingLit ^^ TranslateY
-  def flip: Parser[Flip]             = "flip"                 ~> integerLit  ^^ Flip
-  def size: Parser[Scale]            = ("s" | "size")         ~> floatingLit ^^ (s => Scale(s,s))
-  def rotate: Parser[Rotate]         = ("r" | "rotate")       ~> floatingLit ^^ Rotate
-
-  def ruleref: Parser[String] = ident
-
-  def integerLit: Parser[Int] = numericLit ^^ (_.toInt)
-  def floatingLit: Parser[Double] =
-    (opt("-") ~ numericLit ~ opt("." ~> opt(numericLit))) ^^
-    { case (sign ~ x ~ rest) =>
-        val r = rest.flatMap(x => x).getOrElse("0")
-        (sign.getOrElse("+") + x + "." + r).toDouble
-    }
-
-  def parse(file: String) = {
-    val code = Source.fromFile(file).mkString
-    val tokens = new lexical.Scanner(code)
-    phrase(rulefile)(tokens) match {
-      case Success(r,_) => buildRules(r)
-      case NoSuccess(e,_) => throw new Exception(e.toString)
-    }
-  }
-*/
+class ParseException(pos: Int, message: String) : RuntimeException("$pos: $message")
 
 fun buildRules(ruleFile: RuleFile): Rule {
     val ruleMap = hashMap<String,RandomRule>()
@@ -81,13 +180,9 @@ fun buildRules(ruleFile: RuleFile): Rule {
     fun getRule(name: String) =
         ruleMap[name] ?: throw Exception("no such rule '$name'")
 
-    fun buildRule(repls: List<Repl>): Rule =
-        CompoundRule(repls.map { r ->
-            val rule = getRule(r.name)
-            val child = TransformRule(rule)
-            for (repl in r.shapeRepls)
-                repl(child)
-            child
+    fun buildRule(applications: List<RuleApplication>) =
+        CompoundRule(applications.map { r ->
+            TransformRule(getRule(r.name), r.transformations)
         })
 
     ruleMap["SQUARE"] = RandomRule.single(PrimitiveRule.SQUARE)
@@ -99,27 +194,23 @@ fun buildRules(ruleFile: RuleFile): Rule {
 
     // ...then link them to definitions
     for (r in ruleFile.rules)
-        getRule(r.name).add((r.weight * 100).toInt(), buildRule(r.repls))
+        getRule(r.name).addBranch(r.weight, buildRule(r.applications))
 
-    val root = TransformRule(getRule(ruleFile.start))
-    //root.scale(200.0, 200.0) // easterbox
-    root.scale(6.0, 6.0)
-    root.translate(0.0, -35.0)
-    return root
+    return TransformRule(getRule(ruleFile.start), arrayList<(DrawState) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) }))
 }
 
-data class RuleFile(val start: String, val rules: List<RuleDef>)
+class RuleFile(val start: String, val rules: List<RuleBranch>)
 
-data class RuleDef(val name: String, val weight: Double, val repls: List<Repl>)
+class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>)
 
-data class Repl(val name: String, val shapeRepls: List<(TransformRule) -> Unit>) {}
+class RuleApplication(val name: String, val transformations: List<(DrawState) -> Unit>)
 
-fun saturation(val s: Double)  = { (r: TransformRule) -> r.saturation(s.toFloat()) }
-fun brightness(val b: Double)  = { (r: TransformRule) -> r.brightness(b.toFloat()) }
-fun hue(val h: Int)            = { (r: TransformRule) -> r.hue(h) }
-fun translateX(val dx: Double) = { (r: TransformRule) -> r.translate(dx, 0.0) }
-fun translateY(val dy: Double) = { (r: TransformRule) -> r.translate(0.0, dy) }
-fun rotate(val a: Double)      = { (r: TransformRule) -> r.rotate(a) }
-fun scale(val s: Double)       = { (r: TransformRule) -> r.scale(s) }
-fun scale(val sx: Double, val sy: Double) = { (r: TransformRule) -> r.scale(sx, sy) }
-fun flip(val a: Int)           = { (r: TransformRule) -> if (a == 90) r.scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees") }
+fun saturation(s: Double)         = { (r: DrawState) -> r.saturation += s.toFloat() }
+fun brightness(b: Double)         = { (r: DrawState) -> r.brightness += b.toFloat() }
+fun hue(h: Int)                   = { (r: DrawState) -> r.hue += h }
+fun translateX(dx: Double)        = { (r: DrawState) -> r.translate(dx, 0.0) }
+fun translateY(dy: Double)        = { (r: DrawState) -> r.translate(0.0, dy) }
+fun rotate(a: Double)             = { (r: DrawState) -> r.rotate(a) }
+fun scale(s: Double)              = { (r: DrawState) -> r.scale(s) }
+fun scale(sx: Double, sy: Double) = { (r: DrawState) -> r.scale(sx, sy) }
+fun flip(a: Double)               = if (a == 90.0) scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees")
