@@ -3,6 +3,25 @@ package contextual
 object RuleParser {
 
     fun parse(file: String): Rule {
+        val ruleFile = RuleFile("SEED1", arrayList(seed1(), seed2(), seed3()))
+        return buildRules(ruleFile)
+    }
+
+    fun seed1(): RuleDef =
+        RuleDef("SEED1", 1.0, arrayList(Repl("SQUARE", arrayList(saturation(0.6), hue(120))),
+                                        Repl("SEED1", arrayList(translateY(1.2), scale(0.99), rotate(1.5)))))
+
+    fun seed2(): RuleDef =
+        RuleDef("SEED1", 0.05, arrayList(Repl("SEED1", arrayList(flip(90)))))
+
+    fun seed3(): RuleDef {
+        val a = Repl("SEED1", arrayList(rotate(-5.0), brightness(0.01)))
+        val b = Repl("SEED1", arrayList(translateY(1.0), translateX(-0.5), scale(0.7), rotate(30.0), flip(90), brightness(0.1)))
+        val c = Repl("SEED1", arrayList(translateY(1.0), translateX(0.5), scale(0.7), rotate(-30.0), flip(90), brightness(0.05)))
+        return RuleDef("SEED1", 0.05, arrayList(a, b, c))
+    }
+
+    fun builtin(): Rule {
         val rule = RandomRule()
 
         rule.add(100, createSeed1(rule))
@@ -22,7 +41,7 @@ object RuleParser {
         next.scale(0.99)
         next.rotate(1.5)
 
-        return CompoundRule(square, next)
+        return CompoundRule(arrayList(square, next))
     }
 
     fun createSeed2(self: Rule): Rule {
@@ -52,8 +71,9 @@ object RuleParser {
         rule3.scale(-1.0, 1.0) // flip 90
         rule3.brightness(0.05.toFloat())
 
-        return CompoundRule(rule1, rule2, rule3)
+        return CompoundRule(arrayList(rule1, rule2, rule3))
     }
+}
 
     /*
   import AST._
@@ -106,71 +126,53 @@ object RuleParser {
       case NoSuccess(e,_) => throw new Exception(e.toString)
     }
   }
-
-  def buildRules(rulefile: RuleFile): Rule = {
-    val ruleMap = mutable.Map[String,RandomRule]()
-
-    def buildRule(repls: List[Repl]): Rule =
-      new CompoundRule(repls.map { r =>
-        val child = new TransformRule(ruleMap(r.name))
-        r.shapeRepls.foreach(applyRepl(child, _))
-        child
-      })
-
-    ruleMap("SQUARE") = new RandomRule {
-      this += (1, PrimitiveRule.Square)
-    }
-    ruleMap("CIRCLE") = new RandomRule {
-      this += (1, PrimitiveRule.Circle)
-    }
-
-    for (rule <- rulefile.rules)
-      ruleMap += (rule.name -> new RandomRule)
-
-    for (r <- rulefile.rules) {
-      val rule = ruleMap(r.name)
-      val prob = (r.weight * 100).toInt
-      rule += (prob, buildRule(r.repls))
-    }
-
-    val tr = new TransformRule(ruleMap(rulefile.start))
-    //tr.scale(200, 200) // easterbox
-    tr.scale(6, 6)
-    tr.translate(0, -35)
-    tr
-  }
-
-  def applyRepl(rule: TransformRule, repl: ShapeRepl) = repl match {
-    case Saturation(s) => rule.saturation(s.toFloat)
-    case Brightness(b) => rule.brightness(b.toFloat)
-    case Hue(h)        => rule.hue(h)
-    case TranslateX(x) => rule.translate(x, 0)
-    case TranslateY(y) => rule.translate(0, y)
-    case Scale(x, y)   => rule.scale(x, y)
-    case Rotate(a)     => rule.rotate(a)
-    case Flip(90)      => rule.scale(-1, 1)
-    case Flip(_)       => throw new UnsupportedOperationException("flip")
-  }
-  */
-}
-
-/*
-object AST {
-  case class RuleFile(start: String, rules: List[RuleDef])
-
-  case class RuleDef(name: String, weight: Double, repls: List[Repl])
-
-  case class Repl(name: String, shapeRepls: List[ShapeRepl])
-
-  sealed abstract class ShapeRepl
-  case class Saturation(s: Double)       extends ShapeRepl
-  case class Brightness(b: Double)       extends ShapeRepl
-  case class Hue(h: Int)                 extends ShapeRepl
-  case class TranslateX(x: Double)       extends ShapeRepl
-  case class TranslateY(y: Double)       extends ShapeRepl
-  case class Flip(a: Int)                extends ShapeRepl
-  case class Scale(x: Double, y: Double) extends ShapeRepl
-  case class Rotate(a: Double)           extends ShapeRepl
-}
-
 */
+
+fun buildRules(ruleFile: RuleFile): Rule {
+    val ruleMap = hashMap<String,RandomRule>()
+
+    fun getRule(name: String) =
+        ruleMap[name] ?: throw Exception("no such rule '$name'")
+
+    fun buildRule(repls: List<Repl>): Rule =
+        CompoundRule(repls.map { r ->
+            val rule = getRule(r.name)
+            val child = TransformRule(rule)
+            for (repl in r.shapeRepls)
+                repl(child)
+            child
+        })
+
+    ruleMap["SQUARE"] = RandomRule.single(PrimitiveRule.SQUARE)
+    ruleMap["CIRCLE"] = RandomRule.single(PrimitiveRule.CIRCLE)
+
+    // First install empty placeholders for all the rules
+    for (rule in ruleFile.rules)
+        ruleMap[rule.name] = RandomRule()
+
+    // ...then link them to definitions
+    for (r in ruleFile.rules)
+        getRule(r.name).add((r.weight * 100).toInt(), buildRule(r.repls))
+
+    val root = TransformRule(getRule(ruleFile.start))
+    //root.scale(200.0, 200.0) // easterbox
+    root.scale(6.0, 6.0)
+    root.translate(0.0, -35.0)
+    return root
+}
+
+data class RuleFile(val start: String, val rules: List<RuleDef>)
+
+data class RuleDef(val name: String, val weight: Double, val repls: List<Repl>)
+
+data class Repl(val name: String, val shapeRepls: List<(TransformRule) -> Unit>) {}
+
+fun saturation(val s: Double)  = { (r: TransformRule) -> r.saturation(s.toFloat()) }
+fun brightness(val b: Double)  = { (r: TransformRule) -> r.brightness(b.toFloat()) }
+fun hue(val h: Int)            = { (r: TransformRule) -> r.hue(h) }
+fun translateX(val dx: Double) = { (r: TransformRule) -> r.translate(dx, 0.0) }
+fun translateY(val dy: Double) = { (r: TransformRule) -> r.translate(0.0, dy) }
+fun rotate(val a: Double)      = { (r: TransformRule) -> r.rotate(a) }
+fun scale(val s: Double)       = { (r: TransformRule) -> r.scale(s) }
+fun scale(val sx: Double, val sy: Double) = { (r: TransformRule) -> r.scale(sx, sy) }
+fun flip(val a: Int)           = { (r: TransformRule) -> if (a == 90) r.scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees") }

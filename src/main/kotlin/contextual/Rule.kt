@@ -33,6 +33,15 @@ class TransformRule(val rule: Rule) : Rule() {
 }
 
 class RandomRule : Rule() {
+
+    class object {
+        fun single(rule: Rule): RandomRule {
+            val result = RandomRule()
+            result.add(1, rule)
+            return result
+        }
+    }
+
     val rules: MutableList<Pair<Int,Rule>> = arrayList<Pair<Int,Rule>>()
 
     fun add(r: Int, rule: Rule) {
@@ -53,7 +62,7 @@ class RandomRule : Rule() {
     }
 }
 
-class CompoundRule(vararg val rules: Rule) : Rule() {
+class CompoundRule(val rules: List<Rule>) : Rule() {
     val size = rules.size
 }
 
