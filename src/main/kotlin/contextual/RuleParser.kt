@@ -20,59 +20,6 @@ object RuleParser {
         val c = Repl("SEED1", arrayList(translateY(1.0), translateX(0.5), scale(0.7), rotate(-30.0), flip(90), brightness(0.05)))
         return RuleDef("SEED1", 0.05, arrayList(a, b, c))
     }
-
-    fun builtin(): Rule {
-        val rule = RandomRule()
-
-        rule.add(100, createSeed1(rule))
-        rule.add(5, createSeed2(rule))
-        rule.add(5, createSeed3(rule))
-
-        return rule
-    }
-
-    fun createSeed1(self: Rule): Rule {
-        val square = TransformRule(PrimitiveRule.SQUARE)
-        square.saturation(0.6.toFloat())
-        square.hue(120)
-
-        val next = TransformRule(self)
-        next.translate(0.0, 1.2)
-        next.scale(0.99)
-        next.rotate(1.5)
-
-        return CompoundRule(arrayList(square, next))
-    }
-
-    fun createSeed2(self: Rule): Rule {
-        //SEED1 { flip 90 }
-
-        val rule = TransformRule(self)
-        rule.scale(-1.0, 1.0) // flip 90
-        return rule
-    }
-
-    fun createSeed3(self: Rule): Rule {
-        val rule1 = TransformRule(self)
-        rule1.rotate(-5.0)
-        rule1.brightness(0.01.toFloat())
-
-        val rule2 = TransformRule(self)
-        rule2.translate(-0.5, 1.0)
-        rule2.scale(0.7)
-        rule2.rotate(30.0)
-        rule2.scale(-1.0, 1.0) // flip 90
-        rule2.brightness(0.1.toFloat())
-
-        val rule3 = TransformRule(self)
-        rule3.translate(-0.5, 1.0)
-        rule3.scale(0.7)
-        rule3.rotate(-30.0)
-        rule3.scale(-1.0, 1.0) // flip 90
-        rule3.brightness(0.05.toFloat())
-
-        return CompoundRule(arrayList(rule1, rule2, rule3))
-    }
 }
 
     /*
