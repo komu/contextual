@@ -4,12 +4,21 @@ import java.awt.geom.AffineTransform
 import java.awt.Color
 import kotlin.template.toString
 
-public class DrawState(var color: HSBColor, val coordinateTransform: AffineTransform) {
+class DrawState(val color: HSBColor, val coordinateTransform: AffineTransform) {
 
     class object {
         fun initial() = DrawState(HSBColor.BLACK, AffineTransform())
     }
 
+    fun transformBy(ops: List<(DrawStateBuilder) -> Unit>): DrawState {
+        val builder = DrawStateBuilder(color, AffineTransform(coordinateTransform))
+        for (op in ops)
+            op(builder)
+        return builder.build()
+    }
+}
+
+class DrawStateBuilder(var color: HSBColor, val coordinateTransform: AffineTransform) {
     var hue: Int
         get() = color.hue
         set(h) { color = color.withHue(h) }
@@ -27,5 +36,6 @@ public class DrawState(var color: HSBColor, val coordinateTransform: AffineTrans
     fun scale(sx: Double, sy: Double)     = coordinateTransform.scale(sx, sy)
     fun rotate(angle: Double)             = coordinateTransform.rotate(angle / 180 * Math.PI)
     fun shear(x: Double, y: Double)       = coordinateTransform.shear(x, y)
-    fun copy() = DrawState(color, AffineTransform(coordinateTransform))
+
+    fun build() = DrawState(color, coordinateTransform)
 }

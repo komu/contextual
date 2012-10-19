@@ -52,7 +52,7 @@ class RuleParser(private val input: String) {
         return RuleApplication(name, transformations)
     }
 
-    fun parseTransformation(): (DrawState) -> Unit {
+    fun parseTransformation(): (DrawStateBuilder) -> Unit {
         val symbol = readSymbol()
         return when (symbol) {
             "saturation" -> saturation(parseNumber())
@@ -196,21 +196,21 @@ fun buildRules(ruleFile: RuleFile): Rule {
     for (r in ruleFile.rules)
         getRule(r.name).addBranch(r.weight, buildRule(r.applications))
 
-    return TransformRule(getRule(ruleFile.start), arrayList<(DrawState) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) }))
+    return TransformRule(getRule(ruleFile.start), arrayList<(DrawStateBuilder) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) }))
 }
 
 class RuleFile(val start: String, val rules: List<RuleBranch>)
 
 class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>)
 
-class RuleApplication(val name: String, val transformations: List<(DrawState) -> Unit>)
+class RuleApplication(val name: String, val transformations: List<(DrawStateBuilder) -> Unit>)
 
-fun saturation(s: Double)         = { (r: DrawState) -> r.saturation += s.toFloat() }
-fun brightness(b: Double)         = { (r: DrawState) -> r.brightness += b.toFloat() }
-fun hue(h: Int)                   = { (r: DrawState) -> r.hue += h }
-fun translateX(dx: Double)        = { (r: DrawState) -> r.translate(dx, 0.0) }
-fun translateY(dy: Double)        = { (r: DrawState) -> r.translate(0.0, dy) }
-fun rotate(a: Double)             = { (r: DrawState) -> r.rotate(a) }
-fun scale(s: Double)              = { (r: DrawState) -> r.scale(s) }
-fun scale(sx: Double, sy: Double) = { (r: DrawState) -> r.scale(sx, sy) }
+fun saturation(s: Double)         = { (r: DrawStateBuilder) -> r.saturation += s.toFloat() }
+fun brightness(b: Double)         = { (r: DrawStateBuilder) -> r.brightness += b.toFloat() }
+fun hue(h: Int)                   = { (r: DrawStateBuilder) -> r.hue += h }
+fun translateX(dx: Double)        = { (r: DrawStateBuilder) -> r.translate(dx, 0.0) }
+fun translateY(dy: Double)        = { (r: DrawStateBuilder) -> r.translate(0.0, dy) }
+fun rotate(a: Double)             = { (r: DrawStateBuilder) -> r.rotate(a) }
+fun scale(s: Double)              = { (r: DrawStateBuilder) -> r.scale(s) }
+fun scale(sx: Double, sy: Double) = { (r: DrawStateBuilder) -> r.scale(sx, sy) }
 fun flip(a: Double)               = if (a == 90.0) scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees")

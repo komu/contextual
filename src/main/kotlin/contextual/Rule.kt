@@ -5,39 +5,34 @@ import java.util.Random
 import java.awt.Shape
 import java.awt.geom.Rectangle2D
 import java.awt.geom.Ellipse2D
+import java.util.Queue
+import java.util.concurrent.BlockingQueue
 
-public abstract class Rule { }
+public abstract class Rule {
+    abstract fun process(ctx: ProcessingContext, state: DrawState, depth: Int)
+}
 
-class TransformRule(val rule: Rule, val ops: List<(DrawState) -> Unit>) : Rule() {
+class TransformRule(val rule: Rule, val ops: List<(DrawStateBuilder) -> Unit>) : Rule() {
 
-    fun transform(tr: DrawState): DrawState {
-        val t = tr.copy()
-        for (op in ops)
-            op(t)
-        return t
-    }
+    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
+        rule.process(ctx, state.transformBy(ops), depth)
 }
 
 class RandomRule : Rule() {
 
-    class object {
-        fun single(rule: Rule): RandomRule {
-            val result = RandomRule()
-            result.addBranch(1.0, rule)
-            return result
-        }
-    }
-
     val rules: MutableList<Pair<Int,Rule>> = arrayList<Pair<Int,Rule>>()
+
+    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
+        randomRule(ctx).process(ctx, state, depth)
 
     fun addBranch(weight: Double, rule: Rule) {
         rules.add(Pair((weight*100).toInt(), rule))
     }
 
-    fun rule(random: Random): Rule {
+    private fun randomRule(ctx: ProcessingContext): Rule {
         val weightSum = rules.fold(0) { (x, r) -> x+r.first }
 
-        val n = random.nextInt(weightSum)
+        val n = ctx.randomInt(weightSum)
         var sum = 0
         for ((w,r) in rules) {
           sum += w
@@ -46,13 +41,31 @@ class RandomRule : Rule() {
         }
         throw AssertionError("no rule found")
     }
+
+    class object {
+        fun single(rule: Rule): RandomRule {
+            val result = RandomRule()
+            result.addBranch(1.0, rule)
+            return result
+        }
+    }
 }
 
 class CompoundRule(val rules: List<Rule>) : Rule() {
-    val size = rules.size
+
+    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) {
+        if (rules.size == 1)
+            rules[0].process(ctx, state, depth)
+        else if (depth < ctx.maxDepth)
+            for (r in rules)
+                ctx.addWorkItem(r, state, depth + 1)
+    }
 }
 
 class PrimitiveRule(val shape: Shape) : Rule() {
+
+    override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
+        ctx.addShape(shape, state)
 
     class object {
         val SQUARE = PrimitiveRule(Rectangle2D.Double(-0.5, -0.5, 1.0, 1.0))
