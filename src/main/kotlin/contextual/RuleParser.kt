@@ -2,6 +2,7 @@ package contextual
 
 import java.io.File
 import java.lang.Character.isLetter
+import java.awt.geom.AffineTransform
 
 class RuleParser(private val input: String) {
 
@@ -49,10 +50,10 @@ class RuleParser(private val input: String) {
     fun parseApplication(): RuleApplication {
         val name = readSymbol()
         val transformations = parseList { parseTransformation() }
-        return RuleApplication(name, transformations)
+        return RuleApplication(name, buildTransform(transformations))
     }
 
-    fun parseTransformation(): (DrawStateBuilder) -> Unit {
+    fun parseTransformation(): (TransformationBuilder) -> Unit {
         val symbol = readSymbol()
         return when (symbol) {
             "saturation" -> saturation(parseNumber())
@@ -182,7 +183,7 @@ fun buildRules(ruleFile: RuleFile): Rule {
 
     fun buildRule(applications: List<RuleApplication>) =
         CompoundRule(applications.map { r ->
-            TransformRule(getRule(r.name), r.transformations)
+            TransformRule(getRule(r.name), r.transformation)
         })
 
     ruleMap["SQUARE"] = RandomRule.single(PrimitiveRule.SQUARE)
@@ -196,21 +197,28 @@ fun buildRules(ruleFile: RuleFile): Rule {
     for (r in ruleFile.rules)
         getRule(r.name).addBranch(r.weight, buildRule(r.applications))
 
-    return TransformRule(getRule(ruleFile.start), arrayList<(DrawStateBuilder) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) }))
+    return TransformRule(getRule(ruleFile.start), buildTransform(arrayList<(TransformationBuilder) -> Unit>({ it.scale(6.0, 6.0) }, { it.translate(0.0, -35.0) })))
+}
+
+private fun buildTransform(ops: List<(TransformationBuilder) -> Unit>): (DrawState) -> DrawState {
+    val tx = TransformationBuilder()
+    for (op in ops)
+        op(tx)
+    return tx.build()
 }
 
 class RuleFile(val start: String, val rules: List<RuleBranch>)
 
 class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>)
 
-class RuleApplication(val name: String, val transformations: List<(DrawStateBuilder) -> Unit>)
+class RuleApplication(val name: String, val transformation: (DrawState) -> DrawState)
 
-fun saturation(s: Double)         = { (r: DrawStateBuilder) -> r.saturation += s.toFloat() }
-fun brightness(b: Double)         = { (r: DrawStateBuilder) -> r.brightness += b.toFloat() }
-fun hue(h: Int)                   = { (r: DrawStateBuilder) -> r.hue += h }
-fun translateX(dx: Double)        = { (r: DrawStateBuilder) -> r.translate(dx, 0.0) }
-fun translateY(dy: Double)        = { (r: DrawStateBuilder) -> r.translate(0.0, dy) }
-fun rotate(a: Double)             = { (r: DrawStateBuilder) -> r.rotate(a) }
-fun scale(s: Double)              = { (r: DrawStateBuilder) -> r.scale(s) }
-fun scale(sx: Double, sy: Double) = { (r: DrawStateBuilder) -> r.scale(sx, sy) }
+fun saturation(s: Double)         = { (r: TransformationBuilder) -> r.saturation += s.toFloat() }
+fun brightness(b: Double)         = { (r: TransformationBuilder) -> r.brightness += b.toFloat() }
+fun hue(h: Int)                   = { (r: TransformationBuilder) -> r.hue += h }
+fun translateX(dx: Double)        = { (r: TransformationBuilder) -> r.translate(dx, 0.0) }
+fun translateY(dy: Double)        = { (r: TransformationBuilder) -> r.translate(0.0, dy) }
+fun rotate(a: Double)             = { (r: TransformationBuilder) -> r.rotate(a) }
+fun scale(s: Double)              = { (r: TransformationBuilder) -> r.scale(s) }
+fun scale(sx: Double, sy: Double) = { (r: TransformationBuilder) -> r.scale(sx, sy) }
 fun flip(a: Double)               = if (a == 90.0) scale(-1.0, 1.0) else throw UnsupportedOperationException("flip is supported only for 90 degrees")

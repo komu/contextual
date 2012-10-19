@@ -12,10 +12,10 @@ public abstract class Rule {
     abstract fun process(ctx: ProcessingContext, state: DrawState, depth: Int)
 }
 
-class TransformRule(val rule: Rule, val ops: List<(DrawStateBuilder) -> Unit>) : Rule() {
+class TransformRule(val rule: Rule, val transform: (DrawState) -> DrawState) : Rule() {
 
     override fun process(ctx: ProcessingContext, state: DrawState, depth: Int) =
-        rule.process(ctx, state.transformBy(ops), depth)
+        rule.process(ctx, transform(state), depth)
 }
 
 class RandomRule : Rule() {
