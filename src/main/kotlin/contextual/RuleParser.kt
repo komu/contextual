@@ -77,19 +77,16 @@ class RuleParser(private val input: String) {
     fun parseTransformation(b: TransformationBuilder) {
         val symbol = readSymbol()
         when (symbol) {
-            "saturation" -> b.saturation(parseNumber().toFloat())
-            "sat"        -> b.saturation(parseNumber().toFloat())
-            "hue"        -> b.hue(parseNumber().toInt())
-            "brightness" -> b.brightness(parseNumber().toFloat())
-            "b"          -> b.brightness(parseNumber().toFloat())
-            "x"          -> b.translate(parseNumber(), 0.0)
-            "y"          -> b.translate(0.0, parseNumber())
-            "size"       -> b.scale(parseNumber())
-            "s"          -> b.scale(parseNumber())
-            "rotate"     -> b.rotate(parseNumber())
-            "r"          -> b.rotate(parseNumber())
-            "flip"       -> b.flip(parseNumber())
-            else         -> throw fail("unexpected symbol '$symbol'")
+            "saturation", "sat" -> b.saturation(parseNumber().toFloat())
+            "hue"               -> b.hue(parseNumber().toInt())
+            "brightness", "b"   -> b.brightness(parseNumber().toFloat())
+            "x"                 -> b.translate(parseNumber(), 0.0)
+            "y"                 -> b.translate(0.0, parseNumber())
+            "size"              -> b.scale(parseNumber())
+            "s"                 -> b.scale(parseNumber())
+            "rotate", "r"       -> b.rotate(parseNumber())
+            "flip"              -> b.flip(parseNumber())
+            else                -> throw fail("unexpected symbol '$symbol'")
         }
     }
 
