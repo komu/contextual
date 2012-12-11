@@ -19,8 +19,7 @@ class PrimitiveDrawingCanvas(width: Int, height: Int): JComponent() {
         imageContext.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
     }
 
-    override fun paintComponent(g: Graphics?) {
-        g!!
+    override fun paintComponent(g: Graphics) {
         g.setColor(getBackground())
         g.fillRect(0, 0, getWidth(), getHeight())
 

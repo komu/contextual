@@ -13,7 +13,7 @@ class HSBColor(val hue: Int, val saturation: Float, val brightness: Float) {
     fun withHue(h: Int)          = HSBColor(h, saturation, brightness)
     fun withSaturation(s: Float) = HSBColor(hue, norm(s), brightness)
     fun withBrightness(b: Float) = HSBColor(hue, saturation, norm(b))
-    fun toColor() = Color.getHSBColor(hue / 360.toFloat(), saturation, brightness)!!
+    fun toColor() = Color.getHSBColor(hue / 360.toFloat(), saturation, brightness)
     fun toString() = "($hue, $saturation, $brightness)"
 
     fun plus(c: HSBColor) = HSBColor(hue + c.hue, saturation + c.saturation, brightness + c.brightness)

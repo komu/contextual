@@ -51,12 +51,14 @@ class TransformationBuilder {
             throw UnsupportedOperationException("flip is supported only for 90 degrees")
 
     fun build(): (DrawState) -> DrawState =
-        if (color == HSBColor.BLACK && coordinateTransform.isIdentity())
-            { s -> s }
-        else if (color == HSBColor.BLACK)
-            { s -> DrawState(s.color, s.coordinateTransform * coordinateTransform) }
-        else if (coordinateTransform.isIdentity())
-            { s -> DrawState(s.color + color, s.coordinateTransform) }
-        else
-            { s -> DrawState(s.color + color, s.coordinateTransform * coordinateTransform) }
+        when {
+            color == HSBColor.BLACK && coordinateTransform.isIdentity() ->
+                { s -> s }
+            color == HSBColor.BLACK ->
+                { s -> DrawState(s.color, s.coordinateTransform * coordinateTransform) }
+            coordinateTransform.isIdentity() ->
+                { s -> DrawState(s.color + color, s.coordinateTransform) }
+            else  ->
+                { s -> DrawState(s.color + color, s.coordinateTransform * coordinateTransform) }
+        }
 }
