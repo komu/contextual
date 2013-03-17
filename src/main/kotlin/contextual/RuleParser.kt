@@ -2,6 +2,7 @@ package contextual
 
 import java.io.File
 import java.lang.Character.isLetter
+import java.util.HashMap
 
 class RuleParser(private val input: String) {
 
@@ -180,7 +181,7 @@ class RuleParser(private val input: String) {
 class ParseException(pos: Int, message: String) : RuntimeException("$pos: $message")
 
 class RuleMap {
-    private val ruleMap = hashMap<String,RandomRule>()
+    private val ruleMap = HashMap<String,RandomRule>()
 
     fun get(name: String) =
         ruleMap[name] ?: throw IllegalArgumentException("no such rule '$name'")

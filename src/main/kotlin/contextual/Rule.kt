@@ -3,6 +3,7 @@ package contextual
 import java.awt.Shape
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Rectangle2D
+import java.util.ArrayList
 
 public abstract class Rule {
     abstract fun process(ctx: Processor, state: DrawState, depth: Int)
@@ -24,7 +25,7 @@ class TransformRule(val rule: Rule, val transform: (DrawState) -> DrawState) : R
 
 class RandomRule : Rule() {
 
-    val rules: MutableList<Pair<Int,Rule>> = arrayList<Pair<Int,Rule>>()
+    val rules: MutableList<Pair<Int,Rule>> = ArrayList<Pair<Int,Rule>>()
     var weightSum = 0
 
     override fun process(ctx: Processor, state: DrawState, depth: Int) =
