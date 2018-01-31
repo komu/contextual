@@ -5,7 +5,7 @@ import java.awt.geom.AffineTransform
 class TransformationBuilder {
 
     var color = HSBColor.BLACK
-    val coordinateTransform =  AffineTransform()
+    private val coordinateTransform =  AffineTransform()
 
     fun hue(h: Int): TransformationBuilder {
         color = color.withHue(h)
@@ -52,11 +52,11 @@ class TransformationBuilder {
 
     fun build(): (DrawState) -> DrawState =
         when {
-            color == HSBColor.BLACK && coordinateTransform.isIdentity() ->
+            color == HSBColor.BLACK && coordinateTransform.isIdentity ->
                 { s -> s }
             color == HSBColor.BLACK ->
                 { s -> DrawState(s.color, s.coordinateTransform * coordinateTransform) }
-            coordinateTransform.isIdentity() ->
+            coordinateTransform.isIdentity ->
                 { s -> DrawState(s.color + color, s.coordinateTransform) }
             else  ->
                 { s -> DrawState(s.color + color, s.coordinateTransform * coordinateTransform) }

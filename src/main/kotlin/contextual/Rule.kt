@@ -5,10 +5,10 @@ import java.awt.geom.Ellipse2D
 import java.awt.geom.Rectangle2D
 import java.util.ArrayList
 
-public abstract class Rule {
+abstract class Rule {
     abstract fun process(ctx: Processor, state: DrawState, depth: Int)
 
-    class object {
+    companion object {
         fun compound(rules: List<TransformRule>): Rule =
             if (rules.size == 1)
                 rules[0]
@@ -25,7 +25,7 @@ class TransformRule(val rule: Rule, val transform: (DrawState) -> DrawState) : R
 
 class RandomRule : Rule() {
 
-    val rules: MutableList<Pair<Int,Rule>> = ArrayList<Pair<Int,Rule>>()
+    val rules: MutableList<Pair<Int,Rule>> = ArrayList()
     var weightSum = 0
 
     override fun process(ctx: Processor, state: DrawState, depth: Int) =
@@ -50,7 +50,7 @@ class RandomRule : Rule() {
         throw AssertionError("no rule found")
     }
 
-    class object {
+    companion object {
         fun single(rule: Rule): RandomRule {
             val result = RandomRule()
             result.addBranch(1.0, rule)
@@ -74,7 +74,7 @@ class PrimitiveRule(val shape: Shape) : Rule() {
     override fun process(ctx: Processor, state: DrawState, depth: Int) =
         ctx.addResult(shape, state)
 
-    class object {
+    companion object {
         val SQUARE = PrimitiveRule(Rectangle2D.Double(-0.5, -0.5, 1.0, 1.0))
         val CIRCLE = PrimitiveRule(Ellipse2D.Double(-0.5, -0.5, 1.0, 1.0))
     }

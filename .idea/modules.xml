@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/contextual-kotlin.iml" filepath="$PROJECT_DIR$/contextual-kotlin.iml" />
+      <module fileurl="file://$PROJECT_DIR$/contextual.iml" filepath="$PROJECT_DIR$/contextual.iml" />
     </modules>
   </component>
 </project>
-

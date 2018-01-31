@@ -8,12 +8,12 @@ class RuleParser(private val input: String) {
 
     private var pos = 0
 
-    class object {
+    companion object {
 
         fun parse(file: String): Rule =
             parse(File(file))
 
-        fun parse(file: File): Rule =
+        private fun parse(file: File): Rule =
             buildRules(RuleParser(file.readText()).parseRuleFile())
     }
 
@@ -24,21 +24,21 @@ class RuleParser(private val input: String) {
         return RuleFile(startShape, rules)
     }
 
-    fun parseStartShape(): String {
+    private fun parseStartShape(): String {
         expectSymbol("startshape")
         return readSymbol()
     }
 
-    fun parseRuleDefinitions(): List<RuleBranch> {
-        val rules = listBuilder<RuleBranch>()
+    private fun parseRuleDefinitions(): List<RuleBranch> {
+        val rules = mutableListOf<RuleBranch>()
 
         while (hasMore())
             rules.add(parseRuleDefinition())
 
-        return rules.build()
+        return rules
     }
 
-    fun parseRuleDefinition(): RuleBranch {
+    private fun parseRuleDefinition(): RuleBranch {
         expectSymbol("rule")
         val name = readSymbol()
         val weight = if (nextCharIs('{')) 1.0 else parseNumber()
@@ -47,24 +47,24 @@ class RuleParser(private val input: String) {
         return RuleBranch(name, weight, applications)
     }
 
-    fun parseApplications(): List<RuleApplication> {
-        val result = listBuilder<RuleApplication>()
+    private fun parseApplications(): List<RuleApplication> {
+        val result = mutableListOf<RuleApplication>()
 
         expectChar('{')
         while (!nextCharIs('}'))
             result.add(parseApplication())
         expectChar('}')
 
-        return result.build()
+        return result
     }
 
-    fun parseApplication(): RuleApplication {
+    private fun parseApplication(): RuleApplication {
         val name = readSymbol()
         val transformations = parseTransformations()
         return RuleApplication(name, transformations)
     }
 
-    fun parseTransformations(): (DrawState) -> DrawState {
+    private fun parseTransformations(): (DrawState) -> DrawState {
         val transformationBuilder = TransformationBuilder()
 
         expectChar('{')
@@ -75,7 +75,7 @@ class RuleParser(private val input: String) {
         return transformationBuilder.build()
     }
 
-    fun parseTransformation(b: TransformationBuilder) {
+    private fun parseTransformation(b: TransformationBuilder) {
         val symbol = readSymbol()
         when (symbol) {
             "saturation", "sat" -> b.saturation(parseNumber().toFloat())
@@ -91,7 +91,7 @@ class RuleParser(private val input: String) {
         }
     }
 
-    fun parseNumber(): Double {
+    private fun parseNumber(): Double {
         skipWhitespace()
 
         if (!hasMore())
@@ -105,12 +105,12 @@ class RuleParser(private val input: String) {
         }
     }
 
-    fun nextCharIs(ch: Char): Boolean {
+    private fun nextCharIs(ch: Char): Boolean {
         skipWhitespace()
         return hasMore() && input[pos] == ch
     }
 
-    fun expectChar(expected: Char) {
+    private fun expectChar(expected: Char) {
         skipWhitespace()
 
         val ch = readChar()
@@ -118,17 +118,17 @@ class RuleParser(private val input: String) {
             throw fail("expected char '$expected', but got '$ch'")
     }
 
-    fun expectSymbol(expected: String) {
+    private fun expectSymbol(expected: String) {
         val symbol = readSymbol()
         if (expected != symbol)
             throw fail("expected symbol '$expected', but got: '$symbol'")
     }
 
-    fun readSymbol(): String {
+    private fun readSymbol(): String {
         skipWhitespace()
 
         val sb = StringBuilder()
-        while (pos < input.size && (isLetter(input[pos]) || (sb.length > 0 && input[pos].isDigit())) )
+        while (pos < input.length && (isLetter(input[pos]) || (sb.length > 0 && input[pos].isDigit())) )
             sb.append(input[pos++])
 
         if (sb.length != 0)
@@ -137,28 +137,28 @@ class RuleParser(private val input: String) {
             throw fail("expected symbol")
     }
 
-    fun hasMore(): Boolean {
+    private fun hasMore(): Boolean {
         skipWhitespace()
-        return pos < input.size
+        return pos < input.length
     }
 
     private fun readTokenFromAlphabet(alphabet: String): String {
         val sb = StringBuilder()
 
-        while (pos < input.size && input[pos] in alphabet)
+        while (pos < input.length && input[pos] in alphabet)
             sb.append(readChar())
 
         return String(sb)
     }
 
     private fun readChar(): Char =
-        if (pos < input.size)
+        if (pos < input.length)
             input[pos++]
         else
             throw fail("unexpected EOF")
 
     private fun skipWhitespace() {
-        while (pos < input.size) {
+        while (pos < input.length) {
             val ch = input[pos]
             if (ch == ';') {
                 skipEndOfLine()
@@ -170,7 +170,7 @@ class RuleParser(private val input: String) {
     }
 
     private fun skipEndOfLine() {
-        while (pos < input.size && input[pos] != '\n')
+        while (pos < input.length && input[pos] != '\n')
             pos++
     }
 
@@ -183,10 +183,10 @@ class ParseException(pos: Int, message: String) : RuntimeException("$pos: $messa
 class RuleMap {
     private val ruleMap = HashMap<String,RandomRule>()
 
-    fun get(name: String) =
+    operator fun get(name: String) =
         ruleMap[name] ?: throw IllegalArgumentException("no such rule '$name'")
 
-    fun set(name: String, rule: RandomRule) {
+    operator fun set(name: String, rule: RandomRule) {
         ruleMap[name] = rule
     }
 }
@@ -210,12 +210,12 @@ fun buildRules(ruleFile: RuleFile): Rule {
 
 class RuleFile(val start: String, val rules: List<RuleBranch>)
 
-class RuleBranch(val name: String, val weight: Double, val applications: List<RuleApplication>) {
+class RuleBranch(val name: String, val weight: Double, private val applications: List<RuleApplication>) {
     fun buildRule(rules: RuleMap) =
         Rule.compound(applications.map { it.buildRule(rules) })
 }
 
-class RuleApplication(val name: String, val transformation: (DrawState) -> DrawState) {
+class RuleApplication(private val name: String, private val transformation: (DrawState) -> DrawState) {
     fun buildRule(rules: RuleMap) =
         TransformRule(rules[name], transformation)
 }

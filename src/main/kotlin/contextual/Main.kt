@@ -4,7 +4,6 @@ import java.awt.Dimension
 import java.awt.geom.AffineTransform
 import javax.swing.JFrame
 import javax.swing.UIManager
-import kotlin.swing.*
 
 fun main(args: Array<String>) {
 
@@ -16,12 +15,12 @@ fun main(args: Array<String>) {
 
     val canvas = PrimitiveDrawingCanvas(imageSize.width, imageSize.height)
 
-    frame("contextual") {
+    JFrame("contextual").apply {
         add(canvas)
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-        setSize(imageSize)
+        size = imageSize
         setLocationRelativeTo(null)
-        setVisible(true)
+        isVisible = true
     }
 
     val initialTransform = AffineTransform()

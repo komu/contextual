@@ -5,7 +5,7 @@ import java.util.Random
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
 
-class Processor(val threads: Int = 3, val maxDepth: Int = 500) {
+class Processor(threads: Int = 3, val maxDepth: Int = 500) {
 
     private val resultQueue = ArrayBlockingQueue<Primitive>(1000)
     private val workerScheduler = Executors.newFixedThreadPool(threads)
@@ -20,7 +20,9 @@ class Processor(val threads: Int = 3, val maxDepth: Int = 500) {
 
     fun addWorkItems(rules: List<Rule>, state: DrawState, depth: Int) {
         for (rule in rules)
-            workerScheduler.execute(runnable { rule.process(this, state, depth) })
+            workerScheduler.execute {
+                rule.process(this, state, depth)
+            }
     }
 
     fun randomInt(n: Int) =

@@ -14,14 +14,14 @@ class PrimitiveDrawingCanvas(width: Int, height: Int): JComponent() {
     private val lock = ReentrantLock()
     private val imageContext = image.createGraphics()!!
 
-    {
-        setBackground(Color.WHITE)
+    init {
+        background = Color.WHITE
         imageContext.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
     }
 
     override fun paintComponent(g: Graphics) {
-        g.setColor(getBackground())
-        g.fillRect(0, 0, getWidth(), getHeight())
+        g.color = background
+        g.fillRect(0, 0, width, height)
 
         lock.withLock {
             g.drawImage(image, 0, 0, null)
@@ -30,8 +30,8 @@ class PrimitiveDrawingCanvas(width: Int, height: Int): JComponent() {
 
     fun draw(p: Primitive) {
         lock.withLock {
-            imageContext.setTransform(p.transform)
-            imageContext.setColor(p.color)
+            imageContext.transform = p.transform
+            imageContext.color = p.color
             imageContext.fill(p.shape)
         }
         repaint(100)

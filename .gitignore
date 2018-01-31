@@ -1,6 +1,6 @@
 *~
 .DS_Store
-target
-out
+/.gradle
+/build
 .idea/uiDesigner.xml
 .idea/workspace.xml
